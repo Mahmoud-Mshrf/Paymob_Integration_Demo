@@ -10,5 +10,6 @@ public class PaymobOptions
     public string HmacSecret { get; set; } = string.Empty;
     public string ApiBaseUrl {get;set;} = "https://accept.paymob.com/";
     public string CheckoutBaseUrl {get;set;} = "https://eg.checkout.paymob.com/";
+    public string PublicApiBaseUrl { get; set; } = string.Empty;
     public List<int> IntegrationIds {get;set;} = [];
 }

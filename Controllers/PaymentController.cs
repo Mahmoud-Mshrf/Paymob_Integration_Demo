@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Paymob_Integration_Demo.Models;
@@ -21,15 +22,18 @@ public class PaymentsController : ControllerBase
     private readonly IPaymobService _paymob;
     private readonly PaymobOptions _options;
     private readonly OrdersDbContext _orders;
+    private readonly IConfiguration _configuration;
  
     public PaymentsController(
         IPaymobService paymob,
         IOptions<PaymobOptions> options,
-        OrdersDbContext orders)
+        OrdersDbContext orders,
+        IConfiguration configuration)
     {
         _paymob = paymob;
         _options = options.Value;
         _orders = orders;
+        _configuration = configuration;
     }
  
     [HttpPost("checkout")]
@@ -37,7 +41,7 @@ public class PaymentsController : ControllerBase
     {
         // 1) Create YOUR OWN order record first (status: Pending) and keep its id.
         //    This is the value that becomes "special_reference" below.
-        var myOrderId = $"ORD-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..24];
+        var myOrderId = $"ORD-{Guid.NewGuid():N}"[..24];
         var order = new PaymentOrder
         {
             Id = myOrderId,
@@ -73,8 +77,8 @@ public class PaymentsController : ControllerBase
                 PhoneNumber = req.CustomerPhone,
             },
             SpecialReference = myOrderId,                          // YOUR order id
-            NotificationUrl = "https://yourapi.com/api/payments/webhook",
-            RedirectionUrl = "https://yourapi.com/api/payments/return",
+            NotificationUrl = $"{_options.PublicApiBaseUrl.TrimEnd('/')}/api/payments/webhook",
+            RedirectionUrl = $"{_options.PublicApiBaseUrl.TrimEnd('/')}/api/payments/return",
         };
  
         var intention = await _paymob.CreateIntentionAsync(intentionRequest);
@@ -165,11 +169,36 @@ public class PaymentsController : ControllerBase
         var hash = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(concatenated));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
-    [HttpGet("return")]
-    public IActionResult Return([FromQuery] string? success, [FromQuery] string? merchant_order_id)
+    [HttpGet("orders/{myOrderId}/status")]
+    public async Task<IActionResult> GetOrderStatus(string myOrderId)
     {
-        // Purely cosmetic — the real confirmation already happened in the webhook above.
-        return Redirect(success == "true" ? "/thank-you" : "/payment-failed");
+        var order = await _orders.PaymentOrders
+            .AsNoTracking()
+            .Where(order => order.Id == myOrderId)
+            .Select(order => new { order.Id, order.Status, order.UpdatedAtUtc })
+            .SingleOrDefaultAsync();
+
+        return order is null ? NotFound() : Ok(order);
+    }
+
+    [HttpGet("return")]
+    public async Task<IActionResult> Return([FromQuery(Name = "merchant_order_id")] string? merchantOrderId)
+    {
+        if (string.IsNullOrWhiteSpace(merchantOrderId))
+            return BadRequest("Missing merchant order id.");
+
+        var orderExists = await _orders.PaymentOrders
+            .AsNoTracking()
+            .AnyAsync(order => order.Id == merchantOrderId);
+        if (!orderExists)
+            return NotFound();
+
+        var paymentResultUrl = _configuration["Frontend:PaymentResultUrl"];
+        if (string.IsNullOrWhiteSpace(paymentResultUrl))
+            return Problem("The frontend payment result URL is not configured.", statusCode: StatusCodes.Status503ServiceUnavailable);
+
+        var redirectUrl = QueryHelpers.AddQueryString(paymentResultUrl, "orderId", merchantOrderId);
+        return Redirect(redirectUrl);
     }
 
 }
