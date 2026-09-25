@@ -18,6 +18,9 @@
 **/*.pdb
 **/*.cache
 **/*.log
+*.db
+*.db-shm
+*.db-wal
 
 # Visual Studio / IDE clutter
 .vs/

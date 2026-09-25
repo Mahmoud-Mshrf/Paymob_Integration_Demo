@@ -2,10 +2,12 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Paymob_Integration_Demo.Models;
 using Paymob_Integration_Demo.Options;
 using Paymob_Integration_Demo.Services;
+using Paymob_Integration_Demo.Storage;
 
 namespace Paymob_Integration_Demo.Controllers;
 
@@ -18,12 +20,16 @@ public class PaymentsController : ControllerBase
 {
     private readonly IPaymobService _paymob;
     private readonly PaymobOptions _options;
-    // In a real app, inject your DbContext / order repository here too.
+    private readonly OrdersDbContext _orders;
  
-    public PaymentsController(IPaymobService paymob, IOptions<PaymobOptions> options)
+    public PaymentsController(
+        IPaymobService paymob,
+        IOptions<PaymobOptions> options,
+        OrdersDbContext orders)
     {
         _paymob = paymob;
         _options = options.Value;
+        _orders = orders;
     }
  
     [HttpPost("checkout")]
@@ -32,6 +38,19 @@ public class PaymentsController : ControllerBase
         // 1) Create YOUR OWN order record first (status: Pending) and keep its id.
         //    This is the value that becomes "special_reference" below.
         var myOrderId = $"ORD-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}"[..24];
+        var order = new PaymentOrder
+        {
+            Id = myOrderId,
+            ProductName = req.ProductName,
+            AmountInPiastres = req.AmountInPiastres,
+            CustomerEmail = req.CustomerEmail,
+            CustomerPhone = req.CustomerPhone,
+            Status = PaymentOrder.Pending,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow,
+        };
+        _orders.PaymentOrders.Add(order);
+        await _orders.SaveChangesAsync();
  
         var intentionRequest = new CreateIntentionRequest
         {
@@ -61,8 +80,10 @@ public class PaymentsController : ControllerBase
         var intention = await _paymob.CreateIntentionAsync(intentionRequest);
         var checkoutUrl = _paymob.BuildCheckoutUrl(intention.ClientSecret);
  
-        // 2) Save intention.Id (Intention ID) and intention.IntentionOrderId (Paymob Order ID)
-        //    next to myOrderId in your database now, so the webhook can find this order later.
+        order.PaymobOrderId = intention.IntentionOrderId;
+        order.IntentionId = intention.Id;
+        order.UpdatedAtUtc = DateTime.UtcNow;
+        await _orders.SaveChangesAsync();
  
         return Ok(new
         {
@@ -91,8 +112,23 @@ public class PaymentsController : ControllerBase
             ? mo.GetString() ?? "" : "";
         long transactionId = obj.GetProperty("id").GetInt64();
  
-        // TODO: look up the order by myOrderId (your special_reference) and update its status.
-        // Process idempotently — Paymob may deliver the same webhook more than once.
+        if (string.IsNullOrWhiteSpace(myOrderId))
+            return BadRequest("Webhook does not contain a merchant order id.");
+
+        var orderExists = await _orders.PaymentOrders
+            .AnyAsync(order => order.Id == myOrderId);
+        if (!orderExists)
+            return NotFound();
+
+        var newStatus = success ? PaymentOrder.Paid : PaymentOrder.Failed;
+        await _orders.PaymentOrders
+            .Where(order => order.Id == myOrderId
+                && order.Status != PaymentOrder.Paid
+                && order.TransactionId != transactionId)
+            .ExecuteUpdateAsync(updates => updates
+                .SetProperty(order => order.Status, newStatus)
+                .SetProperty(order => order.TransactionId, transactionId)
+                .SetProperty(order => order.UpdatedAtUtc, DateTime.UtcNow));
  
         return Ok();
     }

@@ -3,12 +3,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 using Paymob_Integration_Demo.Options;
 using Paymob_Integration_Demo.Services;
+using Paymob_Integration_Demo.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<PaymobOptions>(builder.Configuration.GetSection(PaymobOptions.SectionName));
+builder.Services.AddDbContext<OrdersDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("Orders") ?? "Data Source=paymob-orders.db"));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
@@ -61,6 +65,12 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddHttpClient<IPaymobService, PaymobService>();
 var app = builder.Build();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
+    await dbContext.Database.EnsureCreatedAsync();
+}
 
 if (app.Environment.IsDevelopment())
 {
