@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:5091
+
+POST {{baseUrl}}/api/payments/checkout
+Content-Type: application/json
+
+{
+    "ProductName":"Cairo-Derby Ticket",
+    "AmountInPiastres":10000,
+    "CustomerEmail":"mahmoud@gmail.com",
+    "CustomerPhone":"0111111111111"
+}
+
+

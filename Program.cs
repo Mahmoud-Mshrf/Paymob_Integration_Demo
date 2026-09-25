@@ -59,7 +59,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-
+builder.Services.AddHttpClient<IPaymobService, PaymobService>();
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
