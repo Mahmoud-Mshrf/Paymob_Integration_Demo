@@ -1,18 +1,23 @@
 # Keep source files and project code only
 # Ignore generated build and IDE files
 
-# Build outputs
-bin/
-obj/
-Debug/
-Release/
-[Bb]uild/
-[Bb]uild[Ll]og.*
-*.dll
-*.exe
-*.pdb
-*.cache
-*.log
+# Build outputs (must be ignored even if tracked before)
+**/[Bb]in/
+**/[Oo]bj/
+**/Debug/
+**/Release/
+**/[Bb]uild/
+**/*.AssemblyInfo.cs
+**/*.AssemblyInfoInputs.cache
+**/*.GeneratedMSBuildEditorConfig.editorconfig
+**/*.csproj.CoreCompileInputs.cache
+**/*.csproj.FileListAbsolute.txt
+**/*.genruntimeconfig.cache
+**/*.dll
+**/*.exe
+**/*.pdb
+**/*.cache
+**/*.log
 
 # Visual Studio / IDE clutter
 .vs/
