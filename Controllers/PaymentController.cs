@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Paymob_Integration_Demo.Models;
@@ -69,4 +72,68 @@ public class PaymentsController : ControllerBase
             intentionId = intention.Id,
         });
     }
+     
+    [HttpPost("webhook")]
+    public async Task<IActionResult> Webhook([FromQuery] string hmac)
+    {
+        using var reader = new StreamReader(Request.Body);
+        var rawBody = await reader.ReadToEndAsync();
+ 
+        using var doc = JsonDocument.Parse(rawBody);
+        var obj = doc.RootElement.GetProperty("obj");
+ 
+        var calculated = ComputeHmac(obj, _options.HmacSecret);
+        if (!string.Equals(calculated, hmac, StringComparison.OrdinalIgnoreCase))
+            return Unauthorized(); // signature mismatch — do NOT trust this payload
+ 
+        bool success = obj.GetProperty("success").GetBoolean();
+        string myOrderId = obj.GetProperty("order").TryGetProperty("merchant_order_id", out var mo)
+            ? mo.GetString() ?? "" : "";
+        long transactionId = obj.GetProperty("id").GetInt64();
+ 
+        // TODO: look up the order by myOrderId (your special_reference) and update its status.
+        // Process idempotently — Paymob may deliver the same webhook more than once.
+ 
+        return Ok();
+    }
+ 
+    private static string ComputeHmac(JsonElement obj, string secret)
+    {
+        string Field(string path)
+        {
+            var parts = path.Split('.');
+            var cur = obj;
+            foreach (var part in parts) cur = cur.GetProperty(part);
+            return cur.ValueKind switch
+            {
+                JsonValueKind.String => cur.GetString() ?? "",
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                JsonValueKind.Number => cur.GetRawText(),
+                JsonValueKind.Null => "",
+                _ => cur.GetRawText(),
+            };
+        }
+ 
+        string[] orderedFields =
+        {
+            "amount_cents", "created_at", "currency", "error_occured", "has_parent_transaction",
+            "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_refunded",
+            "is_standalone_payment", "is_voided", "order.id", "owner", "pending",
+            "source_data.pan", "source_data.sub_type", "source_data.type", "success",
+        };
+ 
+        var concatenated = string.Concat(orderedFields.Select(Field));
+ 
+        using var hmacSha512 = new HMACSHA512(Encoding.UTF8.GetBytes(secret));
+        var hash = hmacSha512.ComputeHash(Encoding.UTF8.GetBytes(concatenated));
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+    [HttpGet("return")]
+    public IActionResult Return([FromQuery] string? success, [FromQuery] string? merchant_order_id)
+    {
+        // Purely cosmetic — the real confirmation already happened in the webhook above.
+        return Redirect(success == "true" ? "/thank-you" : "/payment-failed");
+    }
+
 }
