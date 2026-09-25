@@ -25,7 +25,7 @@ public class PaymobService : IPaymobService
     public async Task<CreateIntentionResponse> CreateIntentionAsync(
         CreateIntentionRequest request, CancellationToken ct = default)
     {
-        var response = await _http.PostAsJsonAsync("v1/intention/", request, JsonOpts, ct);
+        HttpResponseMessage? response = await _http.PostAsJsonAsync("v1/intention/", request, JsonOpts, ct);
         var raw = await response.Content.ReadAsStringAsync(ct);
  
         if (!response.IsSuccessStatusCode)
