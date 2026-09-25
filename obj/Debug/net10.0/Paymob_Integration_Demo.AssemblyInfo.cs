@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("5589aea2-e587-4fe5-9e6a-c71689a50025")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("Paymob_Integration_Demo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8d70b8cb48bdaa53256931417b23084c6a731f5f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b832c6260efd24b44af7320158e3dd3f1569c963")]
 [assembly: System.Reflection.AssemblyProductAttribute("Paymob_Integration_Demo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Paymob_Integration_Demo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

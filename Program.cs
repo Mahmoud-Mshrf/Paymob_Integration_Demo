@@ -13,12 +13,12 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-builder.Services.AddHttpClient<IPaymobService, PaymobService>((serviceProvider, client) =>
-{
-    var paymobOptions = serviceProvider.GetRequiredService<IOptions<PaymobOptions>>().Value;
-    client.BaseAddress = new Uri(paymobOptions.BaseUrl);
-    client.Timeout = TimeSpan.FromSeconds(paymobOptions.TimeoutSeconds);
-});
+// builder.Services.AddHttpClient<IPaymobService, PaymobService>((serviceProvider, client) =>
+// {
+//     var paymobOptions = serviceProvider.GetRequiredService<IOptions<PaymobOptions>>().Value;
+//     client.BaseAddress = new Uri(paymobOptions.BaseUrl);
+//     // client.Timeout = TimeSpan.FromSeconds(paymobOptions.TimeoutSeconds);
+// });
 
 builder.Services.AddCors(options =>
 {
