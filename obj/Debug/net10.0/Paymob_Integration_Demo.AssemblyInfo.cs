@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Paymob_Integration_Demo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8d70b8cb48bdaa53256931417b23084c6a731f5f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Paymob_Integration_Demo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Paymob_Integration_Demo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
