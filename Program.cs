@@ -92,6 +92,8 @@ app.UseExceptionHandler(exceptionHandlerApp =>
 });
 
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();

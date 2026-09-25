@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f6f3">
+    <title>Payment status</title>
+    <link rel="stylesheet" href="payment-result.css">
+    <script src="payment-result.js" defer></script>
+</head>
+<body>
+    <main class="page-shell">
+        <header class="masthead">
+            <div class="brand">PAYMOB<span> / CHECKOUT</span></div>
+            <span class="secure-label"><span class="secure-dot" aria-hidden="true"></span> Secure payment</span>
+        </header>
+
+        <section class="result" aria-labelledby="result-title">
+            <div class="result-mark" id="result-mark" data-state="checking" aria-hidden="true">
+                <span></span>
+            </div>
+            <p class="eyebrow" id="result-eyebrow">PAYMENT UPDATE</p>
+            <h1 id="result-title">Checking your payment</h1>
+            <p class="message" id="result-message" aria-live="polite">
+                We are waiting for confirmation from the payment provider.
+            </p>
+
+            <div class="order-line" id="order-line" hidden>
+                <span>Order reference</span>
+                <code id="order-reference"></code>
+            </div>
+
+            <button class="retry-button" id="retry-button" type="button" hidden>
+                Check status again
+            </button>
+            <p class="footnote" id="result-footnote">Keep this page open while we confirm the result.</p>
+        </section>
+
+        <footer class="page-footer">
+            <span>Payment confirmation is provided by the payment processor.</span>
+        </footer>
+    </main>
+</body>
+</html>
